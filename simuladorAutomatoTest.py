@@ -6,102 +6,95 @@ def afd(Q, sigma, delta, q0, F, cadeia):
         qA = delta[(qA, s)]
     return qA in F
 
-# Função de Kauã: Conversão de AFND-e para AFND
+#Kauã - AFND-e para AFND
+def fecho_epsilon(estado, delta):
+    #Retorna o fecho-ε de um estado (todos alcançáveis por ε).
+
+    visitados = {estado}
+    pilha = [estado]
+
+    while pilha:
+        atual = pilha.pop()
+        # Procura por transições épsilon (ε)
+        if (atual, "ε") in delta:
+            for prox in delta[(atual, "ε")]:
+                if prox not in visitados:
+                    visitados.add(prox)
+                    pilha.append(prox)
+    return visitados
+
 def afnde_para_afnd(estados, alfabeto, delta, estado_inicial, finais):
-    # Kauã
-    return 0
+    """ Converte um AFND-e para um AFND. """
+    novo_delta = {}
+    novos_finais = set()
+
+    # Calcula o fecho-ε para todos os estados
+    fechos = {q: fecho_epsilon(q, delta) for q in estados}
+
+    #Calcula as novas transições
+    for q in estados:
+        for a in alfabeto:
+            alcançados = set()
+            # A regra é: ε-fecho(δ(ε-fecho(q), a))
+            for p in fechos[q]:
+                if (p, a) in delta:
+                    for r in delta[(p, a)]:
+                        alcançados |= fechos[r]
+            if alcançados:
+                novo_delta[(q, a)] = sorted(list(alcançados))
+
+    # Define os novos estados finais
+    for q in estados:
+        if any(f in fechos[q] for f in finais):
+            novos_finais.add(q)
+
+    # Retorna o novo autômato (sem épsilon)
+    return estados, alfabeto, novo_delta, estado_inicial, sorted(list(novos_finais))
+
 
 
 def afnd_para_afd(estados, alfabeto, delta, estado_inicial, finais):
-    from collections import deque
-
-    # Função auxiliar para obter os próximos estados a partir de um conjunto de estados e um símbolo
-    def mover(estados_set, simbolo):
-        resultado = set()
-        for estado in estados_set:
-            transicoes = delta.get((estado, simbolo), [])
-            if isinstance(transicoes, str):  # Se for AFD, pode vir como string
-                resultado.add(transicoes)
-            else:
-                resultado.update(transicoes)
-        return resultado
-
-    # Estado inicial do AFD será o conjunto que contém apenas o estado inicial do AFND
-    estado_inicial_afd = frozenset([estado_inicial])
-    fila = deque([estado_inicial_afd])
-    visitados = set()
-    novos_estados = []
-    nova_delta = {}
-    novos_finais = set()
-
-    while fila:
-        atual = fila.popleft()
-        if atual in visitados:
-            continue
-        visitados.add(atual)
-        novos_estados.append(atual)
-
-        # Verifica se algum estado do conjunto é final
-        if any(e in finais for e in atual):
-            novos_finais.add(atual)
-
-        for simbolo in alfabeto:
-            prox = mover(atual, simbolo)
-            prox_frozen = frozenset(prox)
-            nova_delta[(atual, simbolo)] = prox_frozen
-            if prox_frozen not in visitados:
-                fila.append(prox_frozen)
-
-    # Renomeia os estados para strings legíveis
-    estado_map = {estado: f"S{i}" for i, estado in enumerate(novos_estados)}
-    estados_renomeados = list(estado_map.values())
-    delta_renomeado = {
-        (estado_map[orig], simbolo): estado_map[dest]
-        for (orig, simbolo), dest in nova_delta.items()
-    }
-    finais_renomeados = [estado_map[e] for e in novos_finais]
-    estado_inicial_renomeado = estado_map[estado_inicial_afd]
-
-    return estados_renomeados, alfabeto, delta_renomeado, estado_inicial_renomeado, finais_renomeados
-
-
-def minimizar_afd(estados, alfabeto, delta, estado_inicial, finais):
-    #Vitor
+    #Kauê 
     return 0
 
-# Lê os dados do arquivo JSON
-with open("entradaAFND.json", "r") as f:
-    dados = json.load(f)
+def minimizar_afd(estados, alfabeto, delta, estado_inicial, finais):
+    #Vitor 
+    return 0
 
-# Converte as chaves da função de transição para tuplas
-delta_convertido = {}
-for chave, valor in dados["delta"].items():
-    estado, simbolo = chave.strip("()").split(",")
-    delta_convertido[(estado, simbolo)] = valor
 
-# Executa o AFD
-# Verifica se é AFND (se alguma transição leva a múltiplos estados)
-is_afnd = any(isinstance(v, list) for v in delta_convertido.values())
+def formatar_delta_para_print(delta):
+    """Função auxiliar para imprimir o dicionário delta de forma legível."""
+    delta_para_print = {}
+    for (estado, simbolo), destinos in delta.items():
+        chave_str = f"({estado},{simbolo})"
+        delta_para_print[chave_str] = destinos
+    return delta_para_print
 
-if is_afnd:
-    estados_afd, sigma_afd, delta_afd, q0_afd, finais_afd = afnd_para_afd(
-        dados["Q"], 
-        dados["Sigma"], 
-        delta_convertido, 
-        dados["q0"], 
+# Garante que o código só rode quando executado como script
+if __name__ == "__main__":
+
+    # LÊ O ARQUIVO DE ENTRADA (O AFND-e)
+    with open("entradaAFND.json", "r") as f:
+        dados = json.load(f)
+
+    # PREPARA O DELTA
+    delta_convertido = {}
+    for chave, destinos in dados["delta"].items():
+        estado, simbolo = chave.strip("()").split(",")
+        # O AFND-e tem *listas* de destinos
+        if not isinstance(destinos, list):
+            destinos = [destinos]
+        delta_convertido[(estado, simbolo)] = destinos
+
+    print("--- Iniciando pipeline de conversão ---")
+
+    (afn_estados, afn_alfabeto, afn_delta, afn_inicial, afn_finais) = afnde_para_afnd(
+        dados["Q"],
+        dados["Sigma"],
+        delta_convertido,
+        dados["q0"],
         dados["F"]
     )
-    resultado = afd(estados_afd, sigma_afd, delta_afd, q0_afd, finais_afd, dados["cadeia"])
-else:
-    resultado = afd(
-        dados["Q"], 
-        dados["Sigma"], 
-        delta_convertido, 
-        dados["q0"], 
-        dados["F"], 
-        dados["cadeia"]
-    )
-
-
-# Exibe o resultado
-print("Cadeia aceita." if resultado else "Cadeia rejeitada.")
+    
+    print("\n--- (AFND sem ε) ---")
+    print(json.dumps(formatar_delta_para_print(afn_delta), indent=2))
