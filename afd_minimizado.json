@@ -1,0 +1,28 @@
+{
+    "Q": [
+        "qMin_0",
+        "qMin_1",
+        "qMin_2",
+        "qMin_3"
+    ],
+    "Sigma": [
+        "a",
+        "b"
+    ],
+    "delta": {
+        "(qMin_0,a)": "qMin_2",
+        "(qMin_0,b)": "qMin_0",
+        "(qMin_1,a)": "qMin_1",
+        "(qMin_1,b)": "qMin_0",
+        "(qMin_2,a)": "qMin_2",
+        "(qMin_2,b)": "qMin_2",
+        "(qMin_3,a)": "qMin_1",
+        "(qMin_3,b)": "qMin_2"
+    },
+    "q0": "qMin_3",
+    "F": [
+        "qMin_0",
+        "qMin_1"
+    ],
+    "cadeia": "ab"
+}
